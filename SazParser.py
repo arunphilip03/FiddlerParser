@@ -5,21 +5,23 @@ import os
 import re
 from xml.dom import minidom
 from datetime import datetime
-from pathlib import Path
+import shutil
 
 commentedSessions = []
 dateFormat = '%Y-%m-%dT%H:%M:%S.%f'
 ecidPattern = 'X-ORACLE-DMS-ECID'
 cardIdPattern = 'X-FA-CARD-ID'
 
-
+# extract fiddler saz file
 def extractFiddler(fiddlerPath, destDir):
 
     zf = zipfile.ZipFile(fiddlerPath)
     zf.extractall(destDir)
 
-
+# parse each session in fiddler saz
 def readRawFiles(dir, onlyCommented, time):
+
+    commentedSessions.clear()
 
     for fileName in os.listdir(dir):
 
@@ -44,6 +46,7 @@ def readRawFiles(dir, onlyCommented, time):
                         metaFile, ecidPattern), parseServerFile(metaFile, cardIdPattern)))
 
 
+# check if the fiddler session has comments added
 def isMetaCommented(metaFile):
     # print(metaFile)
     xmldoc = minidom.parse(metaFile)
@@ -55,7 +58,7 @@ def isMetaCommented(metaFile):
 
     return False, None
 
-
+# calculate elapsed time of a session
 def calcElapsedTime(metaFile):
 
     try:
@@ -74,23 +77,26 @@ def calcElapsedTime(metaFile):
         # print(timeElapsed)
         return timeElapsed
 
-    except Exception as ex:
+    except Exception:
         pass
         # print(ex)
 
 
+# parse session server file (response) for following headers
 # X-FA-CARD-ID, X-ORACLE-DMS-ECID:
 def parseServerFile(metaFile, pattern_str):
 
     serverFile = metaFile.replace('_m.xml', '_s.txt')
 
     sfile = open(serverFile, 'rb')
+    print(metaFile, pattern_str)
+    result = None
 
     try:
         for line in sfile:
             linestr = line.decode('utf-8')
-            if linestr.startswith(pattern_str):
 
+            if linestr.startswith(pattern_str):
                 matches = re.match("{}: (.*)\r".format(pattern_str), linestr)
                 result = matches.group(1)
                 break
@@ -98,24 +104,40 @@ def parseServerFile(metaFile, pattern_str):
     except Exception as inst:
         print(type(inst))
         print(inst)
+        return result
 
     return result
 
 
+# display the filtered sessions
 def printCommentedSessions():
     for metafile in commentedSessions:
-        print(metafile)
-        # calcElapsedTime(metafile)
-        # parseEcid(metafile)
+        for str in metafile:
+            print(str, end="\t")
+        print()
 
+        
 
+# starting point of processing input fiddler (saz) file
 def processFiddler(fiddler, readCommented, time_str):
 
     print(fiddler, readCommented, time_str)
 
     try:
 
-        destDir = Path(fiddler).parent.__str__()
+        dirName = os.path.dirname(fiddler)
+        fileNameExt = os.path.basename(fiddler)
+        fileName = os.path.splitext(fileNameExt)[0]
+        #print(dirName, fileNameExt, fileName)
+
+        destDir = os.path.join(dirName, fileName)
+        #print("dest dir is %s" %destDir)
+
+        if not os.path.exists(destDir):
+            os.makedirs(destDir)
+        else:
+           shutil.rmtree(destDir)
+       
 
         extractFiddler(fiddler, destDir)
         rawDir = os.path.join(destDir, 'raw')
@@ -135,6 +157,8 @@ def processFiddler(fiddler, readCommented, time_str):
         print(ex)
 
 
+
+# test cases
 if __name__ == "__main__":
 
     onlyCommented = False

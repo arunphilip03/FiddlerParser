@@ -1,4 +1,4 @@
-from tkinter import *
+from tkinter import LabelFrame, Checkbutton, Label, Entry, Button, IntVar, Tk, W, E
 from tkinter import ttk
 from tkinter import filedialog
 
@@ -10,12 +10,15 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.title("Read fiddler")
+
         self.minsize(400, 200)
         # self.wm_iconbitmap('')
 
+
         self.labelFrame = ttk.LabelFrame(self, text="Open Fiddler")
         self.labelFrame.grid(column=0, row=1)
-        self.button()
+        self.displayButton()
+        
 
         self.isCommentedVar = IntVar()
         self.checkbox = ttk.Checkbutton(
@@ -32,7 +35,7 @@ class Root(Tk):
             self, text="Process", command=self.process)
         self.processBtn.grid(column=0, row=5, columnspan=3, sticky=E)
 
-    def button(self):
+    def displayButton(self):
         self.button = ttk.Button(
             self.labelFrame, text="Browse", command=self.fileDialog)
         self.button.grid(column=0, row=1, sticky=W)
